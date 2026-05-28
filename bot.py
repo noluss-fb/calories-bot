@@ -134,8 +134,9 @@ def start(message):
     cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
 
-    if user:
-        bot.send_message(message.chat.id, 'Привет я тебя помню!')
+    if user and user[7] is not None:
+        bot.send_message(message.chat.id, 'Ты уже есть в базе! Напиши команду /my_calories, чтобы узнать свои данные или /update, чтобы изменить их☺️.')
+        return
     else:
         cursor.execute('INSERT INTO users (user_id) VALUES (?)', (user_id,))
         conn.commit()
@@ -645,6 +646,8 @@ def callback(call):
         markup.row(btn1, btn2, btn3)
         markup.row(btn4, btn5, btn6)
         bot.edit_message_text('Выбери что-бы ты хотел изменить', call.message.chat.id, call.message.message_id, reply_markup=markup)
+    
+
 
 @bot.message_handler(commands = ['my_date'])
 def date(message):
