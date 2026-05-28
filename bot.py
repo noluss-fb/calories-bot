@@ -700,7 +700,8 @@ def callback(call):
         btn5 = InlineKeyboardButton('Активность 🏃', callback_data = 'menu_activity')
         btn6 = InlineKeyboardButton('Цель 🎯', callback_data = 'menu_goal')
         markup.row(btn1, btn2, btn3)
-        markup.row(btn4, btn5, btn6)
+        markup.row(btn4, btn6)
+        markup.row(btn5)
         bot.edit_message_text('Выбери что-бы ты хотел изменить', call.message.chat.id, call.message.message_id, reply_markup=markup)
     
 
