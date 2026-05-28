@@ -282,7 +282,8 @@ def start (message):
     btn6 = InlineKeyboardButton('Цель 🎯', callback_data = 'menu_goal')
 
     markup.row(btn1, btn2, btn3)
-    markup.row(btn4, btn5, btn6)
+    markup.row(btn4, btn6)
+    markup.row(btn5)
     
     bot.send_message(message.chat.id, 'Выбери что-бы ты хотел изменить☺️:', reply_markup=markup)    
 
