@@ -80,8 +80,12 @@ def update_age(message, user_id):
         return
     cursor.execute('UPDATE users SET age = ? WHERE user_id = ?', (age, user_id))
     conn.commit()
-    bot.send_message(message.chat.id, 'Возраст успешно обновлён на ' + str(age) + ' лет', reply_markup=ReplyKeyboardRemove())
     recalculate(user_id)
+    markup = InlineKeyboardMarkup()
+    btn = InlineKeyboardButton('◀️ Назад', callback_data='back_to_menu')
+    markup.row(btn)
+    bot.send_message(message.chat.id, 'Возраст успешно обновлён на ' + str(age) + ' лет', reply_markup=markup)
+
 
 def update_height(message, user_id):
     try:
@@ -94,7 +98,10 @@ def update_height(message, user_id):
         return
     cursor.execute('UPDATE users SET height = ? WHERE user_id = ?', (height, user_id))
     conn.commit()
-    bot.send_message(message.chat.id, 'Рост успешно обновлён на ' + str(height) + ' см', reply_markup=ReplyKeyboardRemove())
+    markup = InlineKeyboardMarkup()
+    btn = InlineKeyboardButton('◀️ Назад', callback_data='back_to_menu')
+    markup.row(btn)
+    bot.send_message(message.chat.id, 'Рост успешно обновлён на ' + str(height) + ' см', reply_markup=markup)
     recalculate(user_id)
 
 def update_weight(message, user_id):
@@ -108,7 +115,10 @@ def update_weight(message, user_id):
         return
     cursor.execute('UPDATE users SET weight = ? WHERE user_id = ?', (weight, user_id))
     conn.commit()
-    bot.send_message(message.chat.id, 'Вес успешно обновлён на ' + str(weight) + ' кг', reply_markup=ReplyKeyboardRemove())
+    markup = InlineKeyboardMarkup()
+    btn = InlineKeyboardButton('◀️ Назад', callback_data='back_to_menu')
+    markup.row(btn)
+    bot.send_message(message.chat.id, 'Вес успешно обновлён на ' + str(weight) + ' кг', reply_markup=markup)
     recalculate(user_id)
 
 cursor.execute('''
@@ -230,7 +240,7 @@ def get_bju(message, user_id):
     markup.row(btn2)
     markup.row(btn3)
 
-    bot.send_message(message.chat.id, f'Росчёты готовы! Выбери цель, которая тебе подходит:', reply_markup=markup)
+    bot.send_message(message.chat.id, f'Выбери цель, которая тебе подходит:', reply_markup=markup)
 
 @bot.message_handler(commands = ['my_calories'])
 def mydata (message):
@@ -238,7 +248,7 @@ def mydata (message):
     cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
     if not user or user[7] is None:
-        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start')
+        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start ☺️')
     else:    
         bot.send_message(message.chat.id, f'Так я вас нашел по базе и у вам нужно для {user[6]} вам нужно: \n\n{user[7]} - калорий \n{user[8]}г - белков \n{user[9]}г - жиров \n{user[10]}г - углеводов!')
 
@@ -248,11 +258,11 @@ def delete (message):
     cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
     if not user or user[7] is None:
-        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start')
+        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start ☺️')
     else:
         cursor.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
         conn.commit()
-        bot.send_message(message.chat.id, 'Данные были удалены успешно! Напишите команду /start, чтобы начать заново')
+        bot.send_message(message.chat.id, 'Данные были удалены успешно! Напишите команду /start, чтобы начать заново ☺️')
 
 @bot.message_handler(commands = ['update'])
 def start (message):
@@ -260,7 +270,7 @@ def start (message):
     cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
     if not user or user[7] is None:
-        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start')
+        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start ☺️')
         return
 
     markup = InlineKeyboardMarkup()
@@ -274,7 +284,7 @@ def start (message):
     markup.row(btn1, btn2, btn3)
     markup.row(btn4, btn5, btn6)
     
-    bot.send_message(message.chat.id, 'Выбери что-бы ты хотел изменить', reply_markup=markup)    
+    bot.send_message(message.chat.id, 'Выбери что-бы ты хотел изменить☺️:', reply_markup=markup)    
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
@@ -291,23 +301,23 @@ def callback(call):
         btn2 = InlineKeyboardButton('Женщина👩', callback_data = 'reg_gender_female')
         markup.row(btn1, btn2)
 
-        bot.edit_message_text('Отлично! Давай начнем с твоего пола.\nВыбери пол, используя кнопки ниже.', call.message.chat.id, call.message.message_id, reply_markup=markup)
+        bot.edit_message_text('Отлично! Давай начнем с твоего пола⚧️.\nВыбери пол, используя кнопки ниже.', call.message.chat.id, call.message.message_id, reply_markup=markup)
 
     elif call.data == 'start_exit':
-        bot.edit_message_text('Окей, если передумаешь, просто напиши /start', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Окей, если передумаешь, просто напиши /start ☺️', call.message.chat.id, call.message.message_id)
     
     elif call.data == 'reg_gender_male':
         user_id = call.from_user.id
         cursor.execute('UPDATE users SET gender = ? WHERE user_id = ?', ('Мужчина🧑', user_id))
         conn.commit()
-        bot.edit_message_text('Отлично! Теперь напиши свой возраст в годах.', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Теперь напиши свой возраст в годах.', call.message.chat.id, call.message.message_id)
         bot.register_next_step_handler(call.message, get_age, user_id)
 
     elif call.data == 'reg_gender_female':
         user_id = call.from_user.id
         cursor.execute('UPDATE users SET gender = ? WHERE user_id = ?', ('Женщина👩', user_id))
         conn.commit()
-        bot.edit_message_text('Отлично! Теперь напиши свой возраст в годах.', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Теперь напиши свой возраст в годах.', call.message.chat.id, call.message.message_id)
         bot.register_next_step_handler(call.message, get_age, user_id)
 
     elif call.data == 'reg_activity_1':
@@ -315,7 +325,7 @@ def callback(call):
         cur = conn.cursor()
         cur.execute('UPDATE users SET activity = ?, coef = ? WHERE user_id = ?', ('Сидячий образ жизни 🛋️', 1.2, user_id))
         conn.commit()
-        bot.edit_message_text('Отлично! Спасибо за информацию!', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Спасибо за информацию!', call.message.chat.id, call.message.message_id)
         get_bju(call.message, user_id)
     
     elif call.data == 'reg_activity_2':
@@ -323,7 +333,7 @@ def callback(call):
         cur = conn.cursor()
         cur.execute('UPDATE users SET activity = ?, coef = ? WHERE user_id = ?', ('Умеренная активность 🚶‍♂️', 1.55, user_id))
         conn.commit()
-        bot.edit_message_text('Отлично! Спасибо за информацию!', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Спасибо за информацию!', call.message.chat.id, call.message.message_id)
         get_bju(call.message, user_id)
     
     elif call.data == 'reg_activity_3':
@@ -331,7 +341,7 @@ def callback(call):
         cur = conn.cursor()
         cur.execute('UPDATE users SET activity = ?, coef = ? WHERE user_id = ?', ('Высокая активность 🏋️‍♂️', 1.75, user_id))
         conn.commit()
-        bot.edit_message_text('Отлично! Спасибо за информацию!', call.message.chat.id, call.message.message_id)
+        bot.edit_message_text('Спасибо за информацию!', call.message.chat.id, call.message.message_id)
         get_bju(call.message, user_id)
 
     elif call.data == 'reg_goal_lose':
@@ -785,6 +795,12 @@ def ask_for_details(message, previos_result):
 
 @bot.message_handler(commands = ['help'])
 def help (message):
-    bot.send_message(message.chat.id, 'У тебя в роспоряжении есть 4 команды. \n1. /start - Начинает подсчёт твоих калорий, просто введи свои данные. \n2./my_date - Выводит твои данные. \n3. /my_calories - Выводит твои данные. Такие как: калории, грамовки по белкам, жерам и угливодам. \n4. /delete - Удаляет твои данные из базы данных. \n5. /update - Можно изменить конкретный параметр без надобности вводить всё с самого начала.')
+    bot.send_message(message.chat.id, '📋 Список команд:\n\n'
+    '🚀 /start - Начать подсчёт калорий\n'
+    '📊 /my_date - Показать все твои данные\n'
+    '🔥 /my_calories - Показать калории и БЖУ\n'
+    '✏️ /update - Изменить конкретный параметр\n'
+    '🗑️ /delete - Удалить твои данные из базы\n'
+    '📸 Фото еды - Анализ калорий и БЖУ блюда')
     
 bot.polling(none_stop=True)
