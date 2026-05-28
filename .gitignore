@@ -1,0 +1,6 @@
+key.py
+venv/
+__pycache__/
+*.pyc
+users.db
+temp_food.jpg
