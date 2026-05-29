@@ -4,8 +4,11 @@ from telebot.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButt
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from openai import OpenAI
 import base64
-from prompts import FOOD_ANALYSIS
+from datetime import date 
+from prompts import FOOD_ANALYSIS, FOOD_ANALYSIS_JSON
 from key import BOT_KEY, AI_KEY
+
+temp_result = {}
 
 bot = telebot.TeleBot(BOT_KEY)
 
@@ -43,6 +46,19 @@ def analyze_food(file_path):
         ]
     )
     return response.choices[0].message.content
+
+def analyze_food_json(description):
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                'role': 'user',
+                'content': f'{FOOD_ANALYSIS_JSON}\n\nОпиши: {description}'
+            }
+        ]
+    )
+    result = response.choices[0].message.content
+    return result.replace('```json', '').replace('```', '').strip()
 
 def recalculate(user_id):
     cur =  conn.cursor()
@@ -121,6 +137,12 @@ def update_weight(message, user_id):
     bot.send_message(message.chat.id, 'Вес успешно обновлён на ' + str(weight) + ' кг', reply_markup=markup)
     recalculate(user_id)
 
+def save_male(user_id, calories, protein, fat, crabs, description):
+    cur = conn.cursor()
+    today = date.today().strftime("%Y-%m-%d")
+    cur.execute('INSERT INTO meals (user_id, date, calories, protein, fat, crabs, description) VALUES (?, ?, ?, ?, ?, ?, ?)', (user_id, today, calories, protein, fat, crabs, description))
+    conn.commit()
+
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,6 +158,20 @@ cursor.execute('''
         crabs INTEGER,
         goal TEXT,
         coef INTEGER
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS meals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        date TEXT,
+        calories INTEGER,
+        protein INTEGER,
+        fat INTEGER,
+        crabs INTEGER,
+        description TEXT,
+        is_confirmes INTEGER DEFAULT 0
     )
 ''')
 
@@ -703,10 +739,34 @@ def callback(call):
         markup.row(btn4, btn6)
         markup.row(btn5)
         bot.edit_message_text('Выбери что-бы ты хотел изменить', call.message.chat.id, call.message.message_id, reply_markup=markup)
-    
+
+    elif call.data == 'save_meal':
+        user_id = call.from_user.id
+        result = temp_result.get(user_id)
+        if not result:
+            bot.edit_message_text('Не нашел данные для сохранения.', call.message.chat.id, call.message.message_id)
+            return
+        
+        bot.edit_message_text('Сохраняю...⏳', call.message.chat.id, call.message.message_id)
+
+        json_result = analyze_food_json(result)
+
+        try:
+            import json
+            data = json.loads(json_result)
+            total = data['total']
+            save_male(user_id, total['calories'], total['protein'], total['fat'], total['carbs'], result)
+            bot.edit_message_text('✅ Приём пищи записан в дневник!', call.message.chat.id, call.message.message_id)
+
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            bot.edit_message_text('❌ Не удалось сохранить приём пищи. Произошла ошибка при обработке данных.', call.message.chat.id, call.message.message_id)
+        
+    elif call.data == 'skip_save':
+        bot.edit_message_text('Окей, не сохраняю.', call.message.chat.id, call.message.message_id)
 
 @bot.message_handler(commands = ['my_date'])
-def date(message):
+def my_date(message):
     user_id = message.from_user.id
     cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
     user = cursor.fetchone()
@@ -733,6 +793,8 @@ def get_photo(message):
     
         bot.send_message(message.chat.id, 'Фото получено, начинаю анализировать...')
         result = analyze_food('temp_food.jpg')
+        temp_result[user_id] = result
+
         if 'не могу' in result.lower() or 'не распознаю' in result.lower() or 'неопределенно' in result.lower() or 'неизвестно' in result.lower() or 'неясно' in result.lower() or 'неразборчиво' in result.lower():
             bot.send_message(message.chat.id, 'Сфоткайте пожалуйста более качественно, я не могу распознать что это за еда на фото.')
             bot.send_message(message.chat.id, 'Можете уточнить что на фото.\nИли ввести данные вручную в формате: "калории, белки, жиры, углеводы" (например: "500 ккал, 30 г белков, 20 г жиров, 50 г углеводов").\nЕсли хотите пропустить, напишите /skip.')
@@ -777,7 +839,11 @@ def ask_for_details(message, previos_result):
         return
     
     if message.text.lower() == '/skip':
-        bot.send_message(message.chat.id, 'Окей, данные сохранены!')
+        markup = InlineKeyboardMarkup()
+        btn1 = InlineKeyboardButton('✅ Да', callback_data='save_meal')
+        btn2 = InlineKeyboardButton('❌ Нет', callback_data='skip_save')
+        markup.row(btn1, btn2)
+        bot.send_message(message.chat.id, 'Записать этот приём пищи в дневник🤔', reply_markup=markup)
         return
     
     clarification = message.text
@@ -794,6 +860,58 @@ def ask_for_details(message, previos_result):
     updated_result = response.choices[0].message.content
     bot.send_message(message.chat.id, updated_result)
 
+    markup = InlineKeyboardMarkup()
+    btn1 = InlineKeyboardButton('✅ Да', callback_data='save_meal')
+    btn2 = InlineKeyboardButton('❌ Нет', callback_data='skip_save')
+    markup.row(btn1, btn2)
+    bot.send_message(message.chat.id, 'Записать этот приём пищи в дневник🤔', reply_markup=markup)
+
+@bot.message_handler(commands = ['today'])
+def today(message):
+    user_id = message.from_user.id
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
+    user = cur.fetchone()
+
+    if not user or user[7] is None:
+        bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start ☺️')
+        return
+    
+    today_date = date.today().strftime('%Y-%m-%d')
+    cur.execute('SELECT * FROM meals WHERE user_id = ? AND date = ?', (user_id, today_date))
+    meals = cur.fetchall()
+
+    if not meals:
+        bot.send_message(message.chat.id, 'Сегодня ты ещё не добавлял приёмы пищи. Сфоткай свой обед или ужин, и я помогу тебе проанализировать его!☺️')
+        return
+    
+    total_cal = sum(m[3] for m in meals)
+    total_protein = sum(m[4] for m in meals)
+    total_fat = sum(m[5] for m in meals)
+    total_carbs = sum(m[6] for m in meals)
+
+    norm_cal = user[7]
+    norm_protein = user[8]
+    norm_fat = user[9]
+    norm_carbs = user[10]
+
+    left_cal = norm_cal - total_cal
+    left_protein = norm_protein - total_protein
+    left_fat = norm_fat - total_fat
+    left_carbs = norm_carbs - total_carbs
+
+    text = f'📅 Сегодня съел:\n\n'
+    text += f'🔥 Калории: {total_cal} из {norm_cal} ккал\n'
+    text += f'🥩 Белки: {total_protein} из {norm_protein} г\n'
+    text += f'🧈 Жиры: {total_fat} из {norm_fat} г\n'
+    text += f'🍞 Углеводы: {total_carbs} из {norm_carbs} г\n\n'
+    text += f'📊 Осталось:\n'
+    text += f'🔥 {left_cal} ккал\n'
+    text += f'🥩 {left_protein} г белков\n'
+    text += f'🧈 {left_fat} г жиров\n'
+    text += f'🍞 {left_carbs} г углеводов'
+
+    bot.send_message(message.chat.id, text)
 
 @bot.message_handler(commands = ['help'])
 def help (message):
