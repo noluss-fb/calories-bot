@@ -250,7 +250,7 @@ def mydata (message):
     if not user or user[7] is None:
         bot.send_message(message.chat.id, 'Вас нету в базе, пожалуйста с начало введи команду /start ☺️')
     else:    
-        bot.send_message(message.chat.id, f'Так я вас нашел по базе и у вам нужно для {user[6]} вам нужно: \n\n{user[7]} - калорий \n{user[8]}г - белков \n{user[9]}г - жиров \n{user[10]}г - углеводов!')
+        bot.send_message(message.chat.id, f'Так я вас нашел по базе и у вам нужно для {user[6]} вам нужно: \n\n🔥Калорий - {user[7]}\n🥩Белков - {user[8]}\n🧈Жиров - {user[9]}\n🍞Угливодов - {user[10]}')
 
 @bot.message_handler(commands = ['delete'])
 def delete (message):
@@ -757,7 +757,7 @@ def manual_input(message):
         bot.send_message(message.chat.id, 'Окей, пропускаем.')
         return
     
-    bot.send_message(message.chat.id, 'Спасибо за уточнение! Я пересчитываю данные с учетом новой информации...')
+    bot.send_message(message.chat.id, 'Уточняю данные🔄')
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -781,7 +781,7 @@ def ask_for_details(message, previos_result):
         return
     
     clarification = message.text
-    bot.send_message(message.chat.id, 'Уточняю данные...')
+    bot.send_message(message.chat.id, 'Уточняю данные🔄')
 
     response = client.chat.completions.create(
         model="gpt-4o",
